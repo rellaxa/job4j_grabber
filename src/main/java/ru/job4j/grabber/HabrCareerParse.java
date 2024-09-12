@@ -38,32 +38,36 @@ public class HabrCareerParse implements Parse {
     }
 
     @Override
-    public List<Post> list(String link) throws IOException {
-        Connection connection = Jsoup.connect(link);
+    public List<Post> list(String pageLink) {
+        Connection connection = Jsoup.connect(pageLink);
         List<Post> posts = new ArrayList<>();
+        try {
+            Document document = connection.get();
+            Elements rows = document.select(".vacancy-card__inner");
+            rows.forEach(row -> {
 
-        Document document = connection.get();
-        Elements rows = document.select(".vacancy-card__inner");
-        rows.forEach(row -> {
+                Element titleElement = row.select(".vacancy-card__title").first();
+                Element linkElement = titleElement.child(0);
+                String vacancyName = titleElement.text();
+                String date = row.select(".vacancy-card__date")
+                        .first()
+                        .child(0)
+                        .attr("datetime");
+                LocalDateTime dateCreated = dateTimeParser.parse(date);
+                String vacancyLink = String.format("%s%s", SOURCE_LINK, linkElement.attr("href"));
+                String description = retrieveDescription(vacancyLink);
 
-            Element titleElement = row.select(".vacancy-card__title").first();
-            Element linkElement = titleElement.child(0);
-            String vacancyName = titleElement.text();
-            String date = row.select(".vacancy-card__date")
-                    .first()
-                    .child(0)
-                    .attr("datetime");
-            LocalDateTime dateCreated = dateTimeParser.parse(date);
-            String vacancyLink = String.format("%s%s", SOURCE_LINK, linkElement.attr("href"));
-            String description = retrieveDescription(vacancyLink);
+                Post post = new Post();
+                post.setTitle(vacancyName);
+                post.setLink(vacancyLink);
+                post.setDescription(description);
+                post.setCreated(dateCreated);
+                posts.add(post);
+            });
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
 
-            Post post = new Post();
-            post.setTitle(vacancyName);
-            post.setLink(vacancyLink);
-            post.setDescription(description);
-            post.setCreated(dateCreated);
-            posts.add(post);
-        });
         return posts;
     }
 
@@ -73,8 +77,8 @@ public class HabrCareerParse implements Parse {
 
         List<Post> posts = new ArrayList<>();
         for (int pageNumber = 1; pageNumber <= HabrCareerParse.MAX_PAGE; pageNumber++) {
-            String fullLink = "%s%s%d%s".formatted(SOURCE_LINK, PREFIX, pageNumber, SUFFIX);
-            posts.addAll(habrCareerParse.list(fullLink));
+            String pageLink = "%s%s%d%s".formatted(SOURCE_LINK, PREFIX, pageNumber, SUFFIX);
+            posts.addAll(habrCareerParse.list(pageLink));
         }
         posts.forEach(System.out::println);
     }
