@@ -71,15 +71,20 @@ public class HabrCareerParse implements Parse {
         return posts;
     }
 
+    public List<Post> parse() {
+        List<Post> posts = new ArrayList<>();
+        for (int pageNumber = 1; pageNumber <= HabrCareerParse.MAX_PAGE; pageNumber++) {
+            String pageLink = "%s%s%d%s".formatted(SOURCE_LINK, PREFIX, pageNumber, SUFFIX);
+            posts.addAll(list(pageLink));
+        }
+        return posts;
+    }
+
     public static void main(String[] args) throws IOException {
         DateTimeParser parser = new HabrCareerDateTimeParser();
         HabrCareerParse habrCareerParse = new HabrCareerParse(parser);
 
-        List<Post> posts = new ArrayList<>();
-        for (int pageNumber = 1; pageNumber <= HabrCareerParse.MAX_PAGE; pageNumber++) {
-            String pageLink = "%s%s%d%s".formatted(SOURCE_LINK, PREFIX, pageNumber, SUFFIX);
-            posts.addAll(habrCareerParse.list(pageLink));
-        }
+        List<Post> posts = habrCareerParse.parse();
         posts.forEach(System.out::println);
     }
 }
